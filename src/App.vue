@@ -1,5 +1,6 @@
 <template>
   <div>
+    <button @click="allcheck" id="allcheck">全选</button>
     <input type="text" v-model="onedata" @keydown.enter="createdata" autofocus="autofocus" />
     <button @click="createdata" id="add">添加</button>
     <div>
@@ -26,9 +27,9 @@
       </div>
       <div v-if="this.datas.length">
         {{getActiveMes.length}}条待办
-        <button @click="all">所有</button>
-        <button @click="complete">已完成</button>
-        <button @click="active">未完成</button>
+        <button @click="all" :class={active:this.allPage}>所有</button>
+        <button @click="complete" :class={active:completePage}>已完成</button>
+        <button @click="active" :class={active:activePage}>未完成</button>
         <button @click="clear">清空</button>
       </div>
     </div>
@@ -36,38 +37,41 @@
 </template>
 
 <script>
+import { ftruncateSync } from "fs";
 export default {
   data() {
     return {
       onedata: "",
-      datas: [],
+			datas:JSON.parse(localStorage.getItem('my_todo')) || [],
+			// datas:[],
       allPage: 1, //显示所以信息的页面
       completePage: 0, //显示已完成信息的页面
-			activePage: 0 ,//显示未完成信息的页面
-			allMes:[],
-			activeMes:[],
-			completeMes:[]
-			
+      activePage: 0 //显示未完成信息的页面
     };
-  },
+	},
+	// 本地存储数据
+	watch:{
+		datas: {
+			handler:function(){
+					localStorage.setItem('my_todo',JSON.stringify(this.datas));
+					console.log(localStorage.getItem('my_todo'));
+			},
+			deep:true
+		}
+	},
   computed: {
-    getCompleteMes: function() {
-      var mes = [];
-      mes = this.datas.filter(function(item) {
-        return item.status;
-      });
-
-      localStorage.setItem("completeMes", mes);
-
-      return mes;
+    getCompleteMes: function(){
+        var mes = [];
+        mes = this.datas.filter(function(item) {
+          return item.status;
+        });
+        return mes;
     },
     getActiveMes: function() {
       var mes = [];
       mes = this.datas.filter(function(item) {
         return !item.status;
       });
-
-      localStorage.setItem("activeMes", mes);
       return mes;
     }
   },
@@ -79,14 +83,10 @@ export default {
       onedata.status = 0;
       onedata.data = this.onedata;
       this.datas.push(onedata);
-
-      localStorage.setItem("allMes", this.datas);
     },
     // 删除一条信息
     del: function(index) {
       this.datas.splice(index, 1);
-
-      localStorage.setItem("allMes", this.datas);
     },
     // 点击选框时改变状态
     check: function(item) {
@@ -109,19 +109,31 @@ export default {
       this.completePage = 0;
       this.activePage = 1;
       this.allPage = 0;
-    },
+		},
+		//清空
     clear: function() {
-      console.log(this.getCompleteMes);
-      this.getCompleteMes = [];
-
-      localStorage.setItem("completeMes", this.getCompleteMes);
-    }
-  },
-  mounted() {
-    localStorage.getItem(allMes);
-    localStorage.getItem(completeMes);
-    localStorage.getItem(activeMes);
-  }
+			this.datas=this.datas.filter(function(item){
+				return !item.status;
+			});
+		},
+		//全选
+    allcheck: function() {
+			console.log('1');
+      if (
+        this.datas.some(function(item) {
+          return item.status;
+        })
+      ) {
+        this.datas.forEach(function(item) {
+          item.status = 0;
+        });
+      } else {
+        this.datas.forEach(function(item) {
+          item.status = 1;
+        });
+      }
+		}
+	}
 };
 </script>
 <style>
@@ -138,7 +150,7 @@ button {
   margin-left: 10px;
   background-color: rgb(102, 102, 255);
   color: #fff;
-	outline: none;
+  outline: none;
 }
 div {
   margin: 5px;
@@ -147,6 +159,12 @@ div {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+}
+#allcheck {
+  margin-right: 10px;
+}
+.active{
+  background-color: rgb(243, 71, 165);
 }
 </style>
 
